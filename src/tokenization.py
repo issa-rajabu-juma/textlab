@@ -42,7 +42,7 @@ print(data)
 
 '''
     A major drawback of one hot encoding is that it is subjected to bigger matrices i.e. Bigger memory size
-    To resolve that the sentences or documents can be presented in a bag-of-words vector usefull for
+    To resolve that the sentences or documents can be presented in a bag-of-words vector useful for
     summarizing the essence of a document. Below is how you can put the tokens into a binary vector
     indicating the presence or the absence of a particular word in a particular sentence
 '''
@@ -91,3 +91,25 @@ print(data[data.columns[:11]])
     One way to chek for the similarities between sentences is to count the number of overlapping tokens using 
     dot product
 '''
+
+# First transpose a dataframe to be aligned as default style
+new_data = data.T
+
+# measure ovelaps
+overlap0 = new_data.sent0.dot(new_data.sent1)
+overlap1 = new_data.sent0.dot(new_data.sent2)
+overlap2 = new_data.sent0.dot(new_data.sent3)
+print()
+print('[INFO] sentence 0 vs 1 overlaps: {}'.format(overlap0))
+print('[INFO] sentence 0 vs 2 overlaps: {}'.format(overlap1))
+print('[INFO] sentence 0 vs 3 overlaps: {}'.format(overlap2))
+
+# find the actual overlapping words
+overlap = {}
+
+for k, v in (new_data.sent0 & new_data.sent3).items():
+    if v:
+        overlap[k] = v
+
+print()
+print(overlap)
