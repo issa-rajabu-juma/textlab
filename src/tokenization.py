@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import re
+from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import TreebankWordTokenizer
 
 
 #  sample string
@@ -42,7 +45,7 @@ print(data)
 
 '''
     A major drawback of one hot encoding is that it is subjected to bigger matrices i.e. Bigger memory size
-    To resolve that the sentences or documents can be presented in a bag-of-words vector usefull for
+    To resolve that the sentences or documents can be presented in a bag-of-words vector useful for
     summarizing the essence of a document. Below is how you can put the tokens into a binary vector
     indicating the presence or the absence of a particular word in a particular sentence
 '''
@@ -68,7 +71,7 @@ print(bag_of_word.T)
 sentences = 'Since 1995, Issa was declared as the richest man on the earth.\n'
 sentences += 'Issa is a fifth child in a family of six children.\n'
 sentences += 'Before business he first went through education pipeline and acquire his first degree at the age of 25.\n'
-sentences += 'At the age of 26 he started his own venture on technology which went by the name RadonPlus.'
+sentences += 'At the age of 26.7 he started his own venture on technology which went by the name of RadonPlus.'
 
 # create joint tokens
 print()
@@ -91,3 +94,60 @@ print(data[data.columns[:11]])
     One way to chek for the similarities between sentences is to count the number of overlapping tokens using 
     dot product
 '''
+
+# First transpose a dataframe to be aligned as default style
+new_data = data.T
+
+# measure ovelaps
+overlap0 = new_data.sent0.dot(new_data.sent1)
+overlap1 = new_data.sent0.dot(new_data.sent2)
+overlap2 = new_data.sent0.dot(new_data.sent3)
+print()
+print('[INFO] sentence 0 vs 1 overlaps: {}'.format(overlap0))
+print('[INFO] sentence 0 vs 2 overlaps: {}'.format(overlap1))
+print('[INFO] sentence 0 vs 3 overlaps: {}'.format(overlap2))
+
+# find the actual overlapping words
+overlap = {}
+
+for k, v in (new_data.sent0 & new_data.sent3).items():
+    if v:
+        overlap[k] = v
+
+print()
+print(overlap)
+
+# token improvement
+tokens = re.split(r'[-\s,;.!?]+', sample_sentences[0])
+print(tokens)
+print([token for token in tokens if token and token not in '- \t\n,.!?'])
+
+
+pattern = re.compile(r'([-\s,.;!?])+')
+tokens = pattern.split(sample_sentences[0])
+print()
+print(tokens)
+print(list(filter(lambda token: token if token and token not in '- \t\n,.;!?' else None, tokens)))
+
+# filtering the unwanted characters
+tokens = list(filter(lambda x: x if x and x not in '- \t\n,.;!?' else None, tokens))
+print()
+print(tokens)
+print(len(tokens))
+
+
+sentence = sample_sentences[3]
+print()
+print(sentence)
+
+
+tokenizer = RegexpTokenizer(r'\w+|$[0-9.]+|\S+')
+tokens = tokenizer.tokenize(sentence)
+print()
+print(tokens)
+
+
+tokenizer = TreebankWordTokenizer()
+tokens = tokenizer.tokenize(sentence)
+print()
+print(tokens)
