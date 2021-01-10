@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import re
+from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import TreebankWordTokenizer
 
 
 #  sample string
@@ -68,7 +71,7 @@ print(bag_of_word.T)
 sentences = 'Since 1995, Issa was declared as the richest man on the earth.\n'
 sentences += 'Issa is a fifth child in a family of six children.\n'
 sentences += 'Before business he first went through education pipeline and acquire his first degree at the age of 25.\n'
-sentences += 'At the age of 26 he started his own venture on technology which went by the name RadonPlus.'
+sentences += 'At the age of 26.7 he started his own venture on technology which went by the name of RadonPlus.'
 
 # create joint tokens
 print()
@@ -113,3 +116,38 @@ for k, v in (new_data.sent0 & new_data.sent3).items():
 
 print()
 print(overlap)
+
+# token improvement
+tokens = re.split(r'[-\s,;.!?]+', sample_sentences[0])
+print(tokens)
+print([token for token in tokens if token and token not in '- \t\n,.!?'])
+
+
+pattern = re.compile(r'([-\s,.;!?])+')
+tokens = pattern.split(sample_sentences[0])
+print()
+print(tokens)
+print(list(filter(lambda token: token if token and token not in '- \t\n,.;!?' else None, tokens)))
+
+# filtering the unwanted characters
+tokens = list(filter(lambda x: x if x and x not in '- \t\n,.;!?' else None, tokens))
+print()
+print(tokens)
+print(len(tokens))
+
+
+sentence = sample_sentences[3]
+print()
+print(sentence)
+
+
+tokenizer = RegexpTokenizer(r'\w+|$[0-9.]+|\S+')
+tokens = tokenizer.tokenize(sentence)
+print()
+print(tokens)
+
+
+tokenizer = TreebankWordTokenizer()
+tokens = tokenizer.tokenize(sentence)
+print()
+print(tokens)
