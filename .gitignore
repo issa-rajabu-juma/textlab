@@ -15,8 +15,8 @@ build/
 develop-eggs/
 dist/
 downloads/
-datasets/
-outputs/
+dataset/
+serialized/
 eggs/
 .eggs/
 lib/
