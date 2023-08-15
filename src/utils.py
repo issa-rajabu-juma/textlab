@@ -2,9 +2,8 @@ from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
-
+import config
 from imblearn.over_sampling import RandomOverSampler
-
 import os
 import numpy as np
 
@@ -20,8 +19,8 @@ def visualize_metric(history, title, metric):
         plt.ylabel('Accuracy')
 
     elif metric == 'loss':
-        plt.plot(range(EPOCHS), history['loss'], label='Train Loss')
-        plt.plot(range(EPOCHS), history['val_loss'], label='Validation loss')
+        plt.plot(range(config.EPOCHS), history['loss'], label='Train Loss')
+        plt.plot(range(config.EPOCHS), history['val_loss'], label='Validation loss')
         plt.ylabel('Loss')
 
     plt.xlabel('Epochs')
@@ -87,6 +86,18 @@ def mkds(x, y, batch_size):
     else:
         return tf.data.Dataset.from_tensor_slices((x, y)).batch(batch_size)
 
+
+def unpack_ds(dataset):
+    X = []
+    Y = []
+    for x, y in dataset.unbatch():
+        X.append(x.numpy())
+        Y.append(y.numpy())
+
+    X = np.array(X)
+    Y = np.array(Y)
+
+    return X, Y
 
 def get_split_files(base_dir, split):
     file_list = []
