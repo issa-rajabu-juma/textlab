@@ -1,11 +1,12 @@
 from tensorflow import keras
-
+import config as conf
 import tensorflow as tf
-
 from tensorflow.keras import regularizers
 
+# tf.keras.saving.get_custom_objects().clear()
 
 
+# @tf.keras.saving.register_keras_serializable(package='src', name='lacuna_layer')
 class Lacuna(keras.layers.Layer):
     def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
         super().__init__(**kwargs)
@@ -50,22 +51,26 @@ class Lacuna(keras.layers.Layer):
         return config
 
 
+# @tf.keras.saving.register_keras_serializable(package='src', name='transformer_encoder_layer')
 class TransformerEncoder(keras.layers.Layer):
     def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
         self.dense_dim = dense_dim
         self.num_heads = num_heads
-        self.sec_dense_dim = self.dense_dim / 2
 
         self.attention = keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.dense_proj = keras.Sequential([
-            keras.layers.Dense(dense_dim, activation='relu', kernel_regularizer=regularizers.l2(0.000001),
-                               bias_regularizer=regularizers.l2(0.000001)),
-            keras.layers.Dense(self.sec_dense_dim, activation='relu', kernel_regularizer=regularizers.l2(0.000001),
-                               bias_regularizer=regularizers.l2(0.000001)),
-            keras.layers.Dense(embed_dim, kernel_regularizer=regularizers.l2(0.000001),
-                               bias_regularizer=regularizers.l2(0.000001)),
+            keras.layers.Dense(dense_dim, activation='relu', kernel_regularizer=regularizers.l2(conf.L2),
+                               bias_regularizer=regularizers.l2(conf.L2)),
+
+            keras.layers.Dense(dense_dim, kernel_regularizer=regularizers.l2(conf.L2),
+                               bias_regularizer=regularizers.l2(conf.L2)),
+            keras.layers.Dense(dense_dim, activation='relu', kernel_regularizer=regularizers.l2(conf.L2),
+                               bias_regularizer=regularizers.l2(conf.L2)),
+
+            keras.layers.Dense(dense_dim, kernel_regularizer=regularizers.l2(conf.L2),
+                               bias_regularizer=regularizers.l2(conf.L2)),
         ])
 
         self.layernorm_1 = keras.layers.LayerNormalization()
@@ -81,11 +86,17 @@ class TransformerEncoder(keras.layers.Layer):
         return self.layernorm_2(proj_input + proj_output)
 
     def get_config(self):
-        config = super().get_config()
-        config.update({
+        base_config = super().get_config()
+        config = {
             'embed_dim': self.embed_dim,
             'num_heads': self.num_heads,
-            'dense_dim': self.dense_dim
-        })
+            'dense_dim': self.dense_dim,
+            }
+        return {**base_config, **config}
 
-        return config
+    # def from_config(cls_config, config):
+    #     embed_dim = config.pop('embed_dim')
+    #     num_heads = config.pop('num_heads')
+    #     dense_dim = config.pop('dense_dim')
+    #
+    #     return cls_config(embed_dim, num_heads, dense_dim, **config)
