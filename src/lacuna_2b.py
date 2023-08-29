@@ -1,15 +1,22 @@
+import sys
+import tensorflow as tf
 from tensorflow import keras
 from sklearn.utils import class_weight
 from tensorflow.keras.utils import plot_model
-from keras.callbacks import LearningRateScheduler
+from sklearn.preprocessing import StandardScaler
+from keras.callbacks import LearningRateScheduler, EarlyStopping
+from callbacks import EpochCheckpoint
 import config
-from models import build_lacuna
+from models import build_lacuna, build, build_3bt
 import utils
 import os
+import tensorflow.keras.backend as K
 from callbacks import TrainMonitor
 import optimizers as opt
 import numpy as np
 import keras_tuner
+from layers import TransformerEncoder
+
 
 # extract data files
 train_files = utils.get_split_files(config.base_dir, 'train.txt')
@@ -62,58 +69,93 @@ class_weights = dict(zip(np.unique(y_train), class_weights))
 
 # utils.inspect_dataset(train_dataset)
 # utils.inspect_dataset(dev_dataset)
-print()
 
-# model initialization
-hp = keras_tuner.HyperParameters()
-lacuna_model = build_lacuna(hp)
+# scaler = StandardScaler()
+# x_train_scaled = scaler.fit_transform(x_train)
+# y_train_scaled = scaler.fit_transform(y_train)
+# x_dev_scaled = scaler.fit_transform(x_dev)
+# y_dev_scaled = scaler.fit_transform(y_dev)
 
-# prepare search space
-tuner = keras_tuner.RandomSearch(hypermodel=build_lacuna,
-                                 objective='val_loss',
-                                 max_trials=3,
-                                 executions_per_trial=3,
-                                 overwrite=True,
-                                 directory=config.TUNERDIR,
-                                 project_name='lacuna')
-tuner.search_space_summary()
 
-# start searching
-tuner.search(x_train, y_train, epochs=10, validation_data=(x_dev, y_dev))
+# print(x_train_scaled[:100])
+# print(x_dev_scaled[:100])
+#
+# print(type(x_train_scaled))
+# print(type(x_dev_scaled))
+# print()
+# sys.exit()
+#
+# # model initialization
+# hp = keras_tuner.HyperParameters()
+# lacuna_model = build_lacuna(hp)
+#
+# # prepare search space
+# tuner = keras_tuner.RandomSearch(hypermodel=build_lacuna,
+#                                  objective='val_loss',
+#                                  max_trials=3,
+#                                  executions_per_trial=3,
+#                                  overwrite=True,
+#                                  directory=config.TUNERDIR,
+#                                  project_name='lacuna')
+# tuner.search_space_summary()
+#
+# # start searching
+# tuner.search(x_train, y_train, epochs=5, validation_data=(x_dev, y_dev), batch_size=config.BATCHSIZE)
+#
+#
+# # get best hyperparameters
+# best_hps = tuner.get_best_hyperparameters(5)
+# print(best_hps[0])
+#
+# print()
+# tuner.results_summary()
 
-# get best model
-# models = tuner.get_best_models(num_models=2)
-# best_model = models[0]
-# best_model.build(input_shape=())
-# best_model.summary()
+# # build a model and train
+# model = build_lacuna(best_hps[0])
+#
+# # print summary and plot a model
+# model.summary()
+# plot_model(model, config.lacuna_2b_architecture_path, show_shapes=True)
 
-# get best hyperparameters
-best_hps = tuner.get_best_hyperparameters(5)
-print(best_hps[0])
 
-print()
-tuner.results_summary()
 
-# build a model and train
-model = build_simple_lacuna(best_hps[0])
-# model = build_simple_lacuna()
-# model = build_dense_lacuna(config.VOCABSIZE, config.EMBEDDIM, config.DENSEDIM, config.OUTPUTDIM)
-model.summary()
-
-# plot model
-plot_model(model, config.lacuna_2b_architecture_path, show_shapes=True)
 
 # training
-# callbacks = [
-#     keras.callbacks.ModelCheckpoint(config.serialized_model_path, monitor='val_loss', mode='min', save_best_only=True,
-#                                     verbose=1),
-#     TrainMonitor(os.path.join(config.lacuna_2b_training_progress_path, 'lacuna_2b_training_progress.png')),
-#     LearningRateScheduler(opt.step_decay),
-#     keras.callbacks.TensorBoard(log_dir=config.LOGDIR, histogram_freq=1)
-# ]
-#
-# lacuna_2b_model_history = model.fit(train_dataset,
-#                                     validation_data=dev_dataset,
-#                                     epochs=config.EPOCHS,
-#                                     batch_size=config.BATCHSIZE,
-#                                     callbacks=callbacks)
+
+if config.MODEL is None:
+    # model = build_lacuna(best_hps[0])
+    model = build_3bt(config.VOCABSIZE, config.EMBEDDIM, config.DENSEDIM, config.OUTPUTDIM)
+    # model = build()
+    model.summary()
+    plot_model(model, config.ARCHITECTUREPATH, show_shapes=True)
+
+else:
+    # load checkpoint from disk
+    model = keras.models.load_model(config.MODEL, custom_objects={'TransformerEncoder': TransformerEncoder})
+
+    # old learning rate
+    old_lr = K.get_value(model.optimizer.lr)
+    print("[INFO] old learning rate: {}".format(old_lr))
+
+    # update the learning rate
+    model.optimizer.lr.assign(config.NEWLR)
+    new_lr = K.get_value(model.optimizer.learning_rate)
+    print("[INFO] new learning rate: {}".format(new_lr))
+
+
+callbacks = [
+    keras.callbacks.ModelCheckpoint(config.KERASMODEL, monitor='val_loss', mode='min', save_best_only=True,
+                                    verbose=1),
+    TrainMonitor(config.PLOTPROGRESS, config.JSONPROGRESS, config.STARTAT),
+    EpochCheckpoint(config.OUTPUTPATH, every=config.SAVEEVERY, start_at=config.STARTAT), 
+    # LearningRateScheduler(opt.step_decay),
+    EarlyStopping(monitor='val_loss', patience=5, verbose=1),
+    keras.callbacks.TensorBoard(log_dir=config.LOGDIR, histogram_freq=1)
+]
+
+lacuna_2b_model_history = model.fit(x_train, y_train,
+                                    validation_data=(x_dev, y_dev),
+                                    epochs=config.EPOCHS,
+                                    batch_size=config.BATCHSIZE,
+                                    callbacks=callbacks,
+                                    class_weight=class_weights)

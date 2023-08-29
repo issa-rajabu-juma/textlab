@@ -1,8 +1,23 @@
 import matplotlib.pyplot as plt
-from keras.callbacks import BaseLogger
+from keras.callbacks import BaseLogger, Callback
 import json
 import os
 import numpy as np
+
+
+class EpochCheckpoint(Callback):
+    def __init__(self, output_path, every=5, start_at=0):
+        super(EpochCheckpoint, self).__init__()
+        self.output_path = output_path
+        self.every = every
+        self.init_epoch = start_at
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (self.init_epoch + 1) % self.every == 0:
+            p = os.path.sep.join([self.output_path, 'epoch_{}.hdf5'.format(self.init_epoch + 1)])
+            self.model.save(p, overwrite=True)
+
+        self.init_epoch += 1
 
 
 class TrainMonitor(BaseLogger):
@@ -32,7 +47,7 @@ class TrainMonitor(BaseLogger):
         if self.json_path is not None:
             f = open(self.json_path, 'w')
             f.write(json.dumps(self.H))
-            f.close
+            f.close()
 
         if len(self.H['loss']) > 1:
             N = np.arange(0, len(self.H["loss"]))

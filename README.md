@@ -6,31 +6,23 @@ Batch size affects training speed
 
 Trial 1 summary
 Hyperparameters:
-units: 352
-learning_rate: 0.00041615784427578373
-Score: 0.3911738197008769
-
-Model: "model_1"
-_________________________________________________________________
- Layer (type)                Output Shape              Param #   
-=================================================================
- input_2 (InputLayer)        [(None, None)]            0         
-                                                                 
- embedding_1 (Embedding)     (None, None, 32)          4800000   
-                                                                 
- spatial_dropout1d_1 (Spatia  (None, None, 32)         0         
- lDropout1D)                                                     
-                                                                 
- bidirectional_2 (Bidirectio  (None, None, 704)        1084160   
- nal)                                                            
-                                                                 
- bidirectional_3 (Bidirectio  (None, 704)              2976512   
- nal)                                                            
-                                                                 
- dense_1 (Dense)             (None, 17)                11985     
-                                                                 
-=================================================================
-Total params: 8,872,657
-Trainable params: 8,872,657
-Non-trainable params: 0
-_________________________________________________________________
+kernel_regularizer: 0.00015209924599838263
+units_l: 48
+activation: elu
+bias_regularizer: 0.0015916565411355722
+recurrent_regularizer: 0.006184222375640603
+activity_regularizer: 0.00020910419988580753
+units_1: 144
+activation1: tanh
+units_2: 384
+activation2: relu
+units_3: 592
+activation3: elu
+units_4: 352
+activation4: tanh
+units_5: 288
+activation5: tanh
+units_6: 368
+activation6: relu
+learning_rate: 0.00025851209391411376
+Score: 1.0445534586906433
